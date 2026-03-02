@@ -9,7 +9,6 @@
 - **Routing policy**: deterministic mapping from sensitivity mix → generation mode.
 - **Prompt templates**: quote-aware templates for Verbatim / Combined; synthesis template for non-sensitive only.
 - **Evaluation code**: metrics for policy compliance, leakage diagnostics, and utility proxies.
-- **Uncertainty utilities**: paired bootstrap CIs over queries (where applicable).
 
 If you are using your own corpus, you only need to reproduce the *data interface* (CSV schema below) and run the evaluation.
 
