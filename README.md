@@ -1,11 +1,6 @@
 # Policy_Guided_RAG
 
-Segment-level **transformation governance** for Retrieval-Augmented Generation (RAG) in regulated settings.
-Retrieved segments carry **sensitivity metadata**; a lightweight router selects an allowed transformation mode
-(**Verbatim**, **Combined / controlled synthesis**, **Synthesis**); and compliance is audited on the **final output**
-(using answer-side checks rather than model self-reporting).
-
-> ✅ This repository releases the **evaluation protocol** (routing rules, prompt templates, and compliance/leakage metrics + CI utilities).  
+> ✅ This repository releases the **evaluation protocol** (prompt templates, and compliance/leakage metrics).  
 > 🚫 It does **not** release organisational documents, queries, or sensitive spans due to access restrictions.
 
 ---
