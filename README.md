@@ -67,15 +67,6 @@ If you are using your own corpus, you only need to reproduce the *data interface
 
 ---
 
-## Recommended repo structure (expected by reviewers)
-- `prompts/` — prompt templates for Verbatim / Combined / Synthesis  
-- `policy/` — routing rules and label→mode mapping  
-- `eval/` — metric implementations + CI utilities  
-- `examples/` — **synthetic** toy CSVs demonstrating the schema (no real data)  
-- `data/` — empty (with a `README.md` warning not to commit sensitive data)
-
----
-
 ## Notes on release constraints
 This repository intentionally excludes any organisational data. The goal is **protocol + code** that can be executed
 on another corpus with similar transformation constraints.
