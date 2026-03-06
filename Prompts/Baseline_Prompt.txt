@@ -1,0 +1,4 @@
+Answer the question using ONLY the provided context.\n"
+            "If the answer is not supported by the context, reply exactly: I don't know.\n\n"
+            f"Question: {q}\n\n"
+            f"Context:\n{ctx}
