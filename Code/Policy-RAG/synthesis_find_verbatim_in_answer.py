@@ -3,16 +3,10 @@
 #####   conducts a similarity comparison between the cleaned LLM response and the verbatim text at sentence level
 #####   if a similarity above the given threshold is identified then lists the sentences
 
-
-```python
 from typing import List, Dict, Tuple
 import re
 import difflib
 import pandas as pd
-```
-
-
-```python
 import nltk
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -20,43 +14,22 @@ from sklearn.metrics.pairwise import cosine_similarity
 from rapidfuzz import fuzz
 import json
 import ast
-```
-
-
-```python
 import tokenize
-```
 
-
-```python
 #read data
 df = pd.read_csv('.../llm_resp_with_quotes_synth.csv')
-```
-
-
-```python
 df.shape
-```
 
-
-```python
 MODEL_NAME = ".../all_MiniLM_L6_v2"
 model = SentenceTransformer(MODEL_NAME)
-```
 
-
-```python
 SEMANTIC_THRESHOLD = 0.85 
 LEXICAL_THRESHOLD = 60 # llow lexical similarity
 MIN_SENTENCE_LENGTH = 10 # ignore very short sentences - is that ok?
-```
 
-
-```python
 #remove verbatim from response block 
 
-def remove_sentences_from_answer(sentences_col, text2):
-    
+def remove_sentences_from_answer(sentences_col, text2):    
     #ensure sentences are a Python list
     if isinstance(sentences_col, str):
         sentences = ast.literal_eval(sentences_col)
@@ -86,54 +59,31 @@ def remove_sentences_from_answer(sentences_col, text2):
     answer = re.sub(r"\s{2,}", " ", answer).strip()
     return answer
 
-```
-
-
-```python
 def split_sentences(text):
     return text.split()
 
-```
-
-
-```python
 def sliding_windows(tokens, window_size=30, stride=10):
     windows = []
     for i in range(0, len(tokens) - window_size + 1, stride):
         chunk = tokens[i:i + window_size]
         windows.append(" ".join(chunk))
     return windows
-```
 
-
-```python
 def exact_match(sentence, text):
     return sentence in text
 
-```
-
-
-```python
 def lexical_similarity(a, b):
 # Token sort ratio helps normalize word order
     return fuzz.token_sort_ratio(a, b)
 
-```
-
-
-```python
 from transformers import AutoTokenizer
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-```
 
-
-```python
 def detect_paraphrase_violations(verbatim_block, response_text):
     model = SentenceTransformer(MODEL_NAME)
 
     verbatim_tokens = tokenizer.tokenize(verbatim_block)
     response_tokens = tokenizer.tokenize(response_text)
-
     
     verbatim_chunks = sliding_windows(verbatim_tokens)
     response_chunks = sliding_windows(response_tokens)
@@ -171,65 +121,31 @@ def detect_paraphrase_violations(verbatim_block, response_text):
                 })
     return violations
 
-```
-
-
-```python
 def extract_answer_safe(x):
     try:
         return json.loads(x).get("answer")
     except Exception:
         return None
-```
 
-
-```python
 #df["answer"] = df["llm_resp"].apply(lambda x: json.loads(x)["answer"])
 df["answer"] = df["llm_resp"].apply(extract_answer_safe)
-```
 
-
-```python
 #not needed anymore
 #remove verbatim_quotes_used from LLM resp 
 #df["llm_clean_up_verbatim_block"] = df["answer"].apply(lambda x: x[:str(x).find('verbatim_quotes_used')])
-```
 
-
-```python
 df.columns
-```
 
-
-```python
-#remove the quotes marked in the response - these are alreday captired in df['quotes'] column
+#remove the quotes marked in the response - these are already captured in df['quotes'] column
 df['llm_resp_without_quotes']= df.apply(lambda row: remove_sentences_from_answer(row['quotes_usingcharacter'], row['answer']), axis=1)
-```
 
-
-```python
 #detect potential violations
 df['violations'] = df.apply(lambda row: detect_paraphrase_violations(row['text_chunk'], row['llm_resp_without_quotes']), axis=1)
-```
 
-
-```python
 df['not_quoted_by_llm'] = df['violations'].apply(lambda x: True if len(x)>0 else False)
-```
 
-
-```python
 df= df.rename(columns = {'text_chunk' : 'ns_section', 'queries': 'query'})
-```
 
-
-```python
 df[['query', 'ns_section','answer', 'verbatim_quotes_used', 'verbatim_copied_exactly',
        'number_of_verbatim_qoutes_used', 'quotes_usingcharacter',
        'llm_resp_without_quotes', 'violations', 'not_quoted_by_llm']].to_csv('.../synthesis_llm_resp_with_quotes_gptoss.csv')
-```
-
-
-```python
-
-```
