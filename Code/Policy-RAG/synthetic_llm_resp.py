@@ -1,7 +1,4 @@
 ### Get the LLM response for the synthesis (non-sensitive) category. Then run find_verbatim_in_answer to extract the quoted sentences
-
-
-```python
 from elasticsearch import Elasticsearch, exceptions, helpers, AuthenticationException
 from urllib.request import urlopen
 from getpass import getpass
@@ -11,53 +8,32 @@ import getpass
 import pandas as pd
 import os
 import re
-```
-
-
-```python
 from openai import AzureOpenAI
-```
-
-
-```python
 # initiate azure models
 client = AzureOpenAI(
         api_key= ...,
         azure_endpoint=...,
         api_version=...,
 )
-```
-
-
-```python
 def find_quotes(text):
     quotes = re.findall(r"#quote<?\s*(.*?)\s*>?\.?#quote", text, flags=re.DOTALL)
     quotes = [q.strip() for q in quotes]
     return quotes
-```
-
-
-```python
 def parse_llm_output(s):
     try:
         obj = json.loads(s)
-
         answer = obj.get("answer", None)
         quotes = obj.get("verbatim_quotes_used", None)
-
         compliance = obj.get("compliance", {}) or {}
         copied = compliance.get("verbatim_copied_exactly", None)
         n_quotes = compliance.get("number_of_verbatim_qoutes_used", None)
-
         return pd.Series({
             "answer": answer,
             "verbatim_quotes_used": quotes,
             "verbatim_copied_exactly": copied,
             "number_of_verbatim_qoutes_used": n_quotes
         })
-
     except Exception:
-
         return pd.Series({
             "answer": None,
             "verbatim_quotes_used": None,
@@ -65,17 +41,8 @@ def parse_llm_output(s):
             "number_of_verbatim_qoutes_used": None
         })
 
-```
-
 #### Synthetic generation
-
-
-```python
 df_synth= pd.read_csv('.../synthetic.csv')
-```
-
-
-```python
 
 json_schema ="""{
   "answer": "<final answer text>",
@@ -86,15 +53,7 @@ json_schema ="""{
   }
 }
 """
-```
-
-
-```python
 df_synth.columns
-```
-
-
-```python
 #iterate through the dataframe and generate response for combined text 
 resp = []
 for index, row in df_synth.iterrows():
@@ -161,43 +120,14 @@ for index, row in df_synth.iterrows():
     )
     resp.append(response.choices[0].message.content)
     
-```
-
-
-```python
 df_synth['llm_resp']= resp
-```
-
-
-```python
 df_synth[["answer", "verbatim_quotes_used", "verbatim_copied_exactly", "number_of_verbatim_qoutes_used"]] = (
     df_synth["llm_resp"].apply(parse_llm_output)
 )
 
-```
-
-
-```python
 df_synth.head(3)
-```
-
-
-```python
 #now we need to seperate sentences between <#quote and >#quote
 df_synth['quotes_usingcharacter'] = df_synth['answer'].apply(lambda x: find_quotes(x))
-```
-
-
-```python
 find_quotes(df_synth['answer'][2])
-```
-
-
-```python
 df_synth.to_csv('.../llm_resp_with_quotes_synth.csv')
-```
-
-
-```python
 df_combined.shape
-```
