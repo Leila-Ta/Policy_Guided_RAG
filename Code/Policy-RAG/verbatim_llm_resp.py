@@ -1,7 +1,5 @@
 ### Get the LLM response for the Verbatim (sensitive) category. Then run find_verbatim_in_answer to extract the quoted sentences
 
-
-```python
 from elasticsearch import Elasticsearch, exceptions, helpers, AuthenticationException
 from urllib.request import urlopen
 from getpass import getpass
@@ -11,45 +9,25 @@ import getpass
 import pandas as pd
 import os
 import re
-```
 
-
-```python
 from openai import AzureOpenAI
-```
 
-
-```python
 # initiate azure models
 client = AzureOpenAI(
         api_key=...,
         azure_endpoint=...,
         api_version=...,
 )
-```
 
-
-```python
 def find_quotes(text):
     quotes = re.findall(r"#quote<\s*(.*?)\s*>?\.?#quote", text, flags=re.DOTALL)
     quotes = [q.strip() for q in quotes]
     return quotes
-```
 
 #### Verbatim generation
-
-
-```python
 df_verb= pd.read_csv('.../verbatim_manual.csv', encoding='cp1252')
-```
 
-
-```python
 df_verb.columns
-```
-
-
-```python
 
 json_schema ="""{
   "answer": "<final answer text>",
@@ -60,10 +38,7 @@ json_schema ="""{
   }
 }
 """
-```
 
-
-```python
 #iterate through the dataframe and generate response for combined text 
 resp = []
 for index, row in df_verb.iterrows():
@@ -71,7 +46,7 @@ for index, row in df_verb.iterrows():
     verbatim = row['s_text']
     prompt = f"""
            
-             You are a helpful assistant that answers questions ONLY using the provided content.
+             You are a helpful assistant who answers questions ONLY using the provided content.
             
             CRITICAL RULES:
             
@@ -113,7 +88,7 @@ for index, row in df_verb.iterrows():
             6) CONSISTENCY REQUIREMENT
             
             - If any verbatim sentence appears in the "answer" field but is NOT listed in "verbatim_quotes_used",
-              the response is INVALID.
+              The response is INVALID.
             
             INTERNAL CHECK (must be completed before final output):
             
@@ -149,45 +124,20 @@ for index, row in df_verb.iterrows():
     )
     resp.append(response.choices[0].message.content)
     
-```
-
-
-```python
 # Parse each response
 records = [json.loads(r) for r in resp]
-```
 
-
-```python
 df = pd.json_normalize(records)
-```
 
-
-```python
 df_verb['llm_resp']= df['answer']
 df_verb['verbatim_quotes_used'] = df['verbatim_quotes_used']
 df_verb["verbatim_copied_exactly"] = df['compliance.verbatim_copied_exactly']
 df_verb["number_of_verbatim_qoutes_used"] = df["compliance.number_of_verbatim_qoutes_used"]
-```
 
-
-```python
 df_verb['verbatim_copied_exactly'] = df_verb.apply(lambda row: False if row['number_of_verbatim_qoutes_used']==0 else row['verbatim_copied_exactly'], axis=1)
-```
 
-
-```python
 #now we need to seperate sentences between <#quote and >#quote
 df_verb['quotes_usingcharacter'] = df_verb['llm_resp'].apply(lambda x: find_quotes(x))
-```
 
-
-```python
 #save results
 df_verb.to_csv('.../new_verb_output.csv')
-```
-
-
-```python
-
-```
