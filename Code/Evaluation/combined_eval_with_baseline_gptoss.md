@@ -1,4 +1,3 @@
-```python
 import os, re, json, ast, difflib
 from typing import Optional, List, Dict, Any, Tuple
 import numpy as np
@@ -10,10 +9,7 @@ import re
 import difflib
 from openai import AzureOpenAI
 import time
-```
 
-
-```python
 # =========================
 # CONFIG: paths & systems
 # =========================
@@ -69,10 +65,7 @@ try:
     _HAS_SKLEARN = True
 except Exception:
     _HAS_SKLEARN = False
-```
 
-
-```python
 # =========================
 # Baseline generation using the SAME retrieved context (s_section + ns_section)
 # You do NOT need a separate "baseline dataset" — we reuse DATASET_CSV and write BASELINE_OUT_CSV.
@@ -162,10 +155,7 @@ if GENERATE_BASELINE and (REGENERATE_BASELINE or (not os.path.exists(BASELINE_OU
     print("Done.")
 else:
     print("Skipping baseline generation (using existing file):", BASELINE_OUT_CSV)
-```
 
-
-```python
 # Utilities
 STOPWORDS = set("""
 a an the and or but if then else for to of in on at by with as is are was were be been being
@@ -176,26 +166,17 @@ can could should would may might will just than too very must done there here ha
 _SENT_SPLIT_RE = re.compile(r"(?<=[\.\?\!])\s+|\n+")
 _WS_RE = re.compile(r"\s+")
 _WORD_RE = re.compile(r"[A-Za-z0-9]+")
-```
 
-
-```python
 def unescape_newlines(x: Any) -> str:
     if x is None or (isinstance(x, float) and np.isnan(x)):
         return ""
     s = str(x)
     # handle literal "\n"
     return s.replace("\\n", "\n").replace("\\t", "\t")
-```
 
-
-```python
 def normalize_ws(s: str) -> str:
     return _WS_RE.sub(" ", (s or "").strip())
-```
 
-
-```python
 def safe_literal_list(x: Any) -> List[str]:
     """Accept list, JSON list, or python-literal list stored as string."""
     if x is None or (isinstance(x, float) and np.isnan(x)):
@@ -218,33 +199,21 @@ def safe_literal_list(x: Any) -> List[str]:
         except Exception:
             pass
     return []
-```
 
-
-```python
 def safe_json_loads(s: str) -> Optional[Any]:
     try:
         return json.loads(s)
     except Exception:
         return None
-```
 
-
-```python
 def tokenise(s: str) -> List[str]:
     s = normalize_ws(s.lower())
     return _WORD_RE.findall(s)
-```
 
-
-```python
 def content_tokens(s: str) -> List[str]:
     toks = [t for t in tokenise(s) if len(t) >= 3 and t not in STOPWORDS]
     return toks
-```
 
-
-```python
 def split_spans(text: str) -> List[str]:
     """Heuristic sentence/line segmentation used for diagnostics."""
     t = (text or "").strip()
@@ -260,10 +229,7 @@ def split_spans(text: str) -> List[str]:
             continue
         spans.append(p)
     return spans
-```
 
-
-```python
 def token_overlap_recall(answer: str, source: str) -> float:
     """Recall of content tokens from source that appear in answer."""
     src = set(content_tokens(source))
@@ -271,10 +237,7 @@ def token_overlap_recall(answer: str, source: str) -> float:
         return np.nan
     ans = set(content_tokens(answer))
     return len(src & ans) / len(src)
-```
 
-
-```python
 def novel_token_rate(answer: str, source: str) -> float:
     """Fraction of answer content tokens not present in source content tokens."""
     ans = content_tokens(answer)
@@ -283,18 +246,12 @@ def novel_token_rate(answer: str, source: str) -> float:
     src = set(content_tokens(source))
     novel = [t for t in ans if t not in src]
     return len(novel) / max(1, len(ans))
-```
 
-
-```python
 def longest_common_substring_len(a: str, b: str) -> int:
     if not a or not b:
         return 0
     return difflib.SequenceMatcher(None, a, b).find_longest_match(0, len(a), 0, len(b)).size
-```
 
-
-```python
 def matching_blocks_stats(a: str, b: str, min_block: int = 30) -> Dict[str, int]:
     """Return total and max contiguous matching block sizes >= min_block."""
     a = normalize_ws(a or "")
@@ -308,10 +265,7 @@ def matching_blocks_stats(a: str, b: str, min_block: int = 30) -> Dict[str, int]
         "max_block": int(max(blocks) if blocks else 0),
         "num_blocks": int(len(blocks)),
     }
-```
 
-
-```python
 def seq_ratio(a: str, b: str) -> float:
     """difflib ratio in [0,1]."""
     a = normalize_ws(a)
@@ -319,10 +273,7 @@ def seq_ratio(a: str, b: str) -> float:
     if not a or not b:
         return np.nan
     return difflib.SequenceMatcher(None, a, b, autojunk=False).ratio()
-```
 
-
-```python
 def is_abstain(ans: str) -> bool:
     a = normalize_ws(ans).lower()
     if not a:
@@ -342,18 +293,12 @@ def is_abstain(ans: str) -> bool:
         "no information provided",
     ]
     return any(p in a for p in patterns)
-```
 
-
-```python
 def quote_sentence_boundary_error(q: str) -> bool:
     """True if quote contains >1 sentence by naive splitter."""
     sents = split_sentences(q)
     return len(sents) > 1
-```
 
-
-```python
 def count_syllables(word: str) -> int:
     w = re.sub(r"[^a-z]", "", word.lower())
     if not w:
@@ -369,10 +314,7 @@ def count_syllables(word: str) -> int:
     if w.endswith("e") and count > 1:
         count -= 1
     return max(1, count)
-```
 
-
-```python
 def readability(ans: str) -> Tuple[float, float]:
     """(Flesch Reading Ease, Flesch-Kincaid Grade)"""
     text = normalize_ws(ans)
@@ -389,10 +331,7 @@ def readability(ans: str) -> Tuple[float, float]:
     # Flesch-Kincaid Grade
     fk = 0.39 * (n_words / sentences) + 11.8 * (n_syll / n_words) - 15.59
     return (float(fre), float(fk))
-```
 
-
-```python
 def split_sentences(text: str) -> List[str]:
     """Naive sentence splitter (good enough for auditing granularity)."""
     t = normalize_ws(text)
@@ -402,10 +341,7 @@ def split_sentences(text: str) -> List[str]:
     sents = re.split(r"(?<=[.!?])\s+", t)
     sents = [s.strip() for s in sents if s.strip()]
     return sents
-```
 
-
-```python
 def clamp01(v: float) -> float:
     if v is None:
         return np.nan
@@ -415,10 +351,7 @@ def clamp01(v: float) -> float:
     except Exception:
         pass
     return float(max(0.0, min(1.0, v)))
-```
 
-
-```python
 def levenshtein_similarity(a: str, b: str) -> float:
     """
     Normalized Levenshtein similarity in [0,1], computed with a DP fallback.
@@ -457,10 +390,7 @@ def levenshtein_similarity(a: str, b: str) -> float:
     dist = prev[lb]
     denom = max(la, lb)
     return float(1.0 - (dist / denom))
-```
 
-
-```python
 def tfidf_cosine(a: str, b: str) -> float:
     if not _HAS_SKLEARN:
         return np.nan
@@ -474,10 +404,7 @@ def tfidf_cosine(a: str, b: str) -> float:
         return float(cosine_similarity(X[0], X[1])[0, 0])
     except ValueError:
         return np.nan
-```
 
-
-```python
 def best_sentence_match(
     needles: List[str],
     hay_sents: List[str],
@@ -500,15 +427,9 @@ def best_sentence_match(
     if best < 0:
         return (np.nan, ("", ""))
     return (best, best_pair)
-```
 
-
-```python
 _VOWELS = set("aeiouy")
-```
 
-
-```python
 # --- Two-pass diagnostic helper: remove quoted spans from response ---
 # Supports both: (1) explicit markers: #quote< ... >#quote, and (2) exact quote strings.
 
@@ -539,10 +460,7 @@ def strip_quoted_spans(answer: str, quotes: List[str]) -> Tuple[str, int, int]:
             a2 = a2.replace(qn, " ")
 
     return normalize_ws(a2), int(n_marked), int(n_exact)
-```
 
-
-```python
 def compute_row_metrics_v2(
     row: pd.Series,
     answer_col: str,
@@ -726,7 +644,6 @@ def compute_row_metrics_v2(
             metrics["provided_num_quotes_used"] = int(row.get("number_of_verbatim_qoutes_used"))
         except Exception:
             metrics["provided_num_quotes_used"] = np.nan
-
 
     # ----------------------------
     # Controlled-system compliance
@@ -935,10 +852,6 @@ def compute_row_metrics_v2(
 # Backward-compatible alias (also overrides any older definition in this kernel)
 compute_row_metrics = compute_row_metrics_v2
 
-```
-
-
-```python
 def evaluate_system(
     dataset_csv: str,
     system_cfg: Dict[str, Any],
@@ -986,7 +899,6 @@ def evaluate_system(
     min_block = int(system_cfg.get("min_verbatim_block", 30))
     psr_sem_th = float(system_cfg.get("psr_sem_threshold", 0.35))
     psr_tok_th = float(system_cfg.get("psr_tokrec_threshold", 0.20))
-
 
     # Merge needed fields from dataset into outputs (only if missing)
     needed = [join_on]
@@ -1080,8 +992,7 @@ def evaluate_system(
         # 8) Granularity Compliance
         "granularity_compliance_mean": gran_mean,
     }
-
-    
+  
     # ----------------------------
     # Auto-aggregate ALL metric columns (so schema_ok, json_parse_ok, etc. are reported)
     # ----------------------------
@@ -1108,12 +1019,7 @@ def evaluate_system(
 
     return out_metrics, summary
 
-```
-
-
-```python
 # Run all systems & save
-
 all_summaries = []
 
 for name, cfg in SYSTEMS.items():
@@ -1145,15 +1051,11 @@ with open(all_json, "w", encoding="utf-8") as f:
 
 print("Saved:", all_csv)
 print("Saved:", all_json)
-```
-
     
     === Evaluating: baseline_llama4 ===
 
-
     /tmp/ipykernel_20741/1847260877.py:95: RuntimeWarning: Mean of empty slice
       return float(np.nanmean(series.astype(float)))
-
 
     Saved: /home/cdsw/Leila/Data/eval_results_llama4_baseline_vs_combined/baseline_llama4_row_metrics.csv
     Saved: /home/cdsw/Leila/Data/eval_results_llama4_baseline_vs_combined/baseline_llama4_summary.json
@@ -1166,16 +1068,3 @@ print("Saved:", all_json)
 
 
 
-```python
-
-```
-
-
-```python
-
-```
-
-
-```python
-
-```
