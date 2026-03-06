@@ -1,7 +1,4 @@
 ### Get the LLM response for the combined category. Then run find_verbatim_in_answer to extract the quoted sentences
-
-
-```python
 from elasticsearch import Elasticsearch, exceptions, helpers, AuthenticationException
 from urllib.request import urlopen
 from getpass import getpass
@@ -12,67 +9,39 @@ import pandas as pd
 import os
 import re
 from openai import AzureOpenAI
-```
-
-
-```python
 # initiate azure models
 client = AzureOpenAI(
         api_key=...,
         azure_endpoint=...,
         api_version=...,
 )
-```
-
-
-```python
 def find_quotes(text):
     quotes = re.findall(r"#quote<\s*(.*?)\s*>\.?#quote", text, flags=re.DOTALL)
     quotes = [q.strip() for q in quotes]
     return quotes
-```
-
-
-```python
 def parse_llm_output(s):
     try:
         obj = json.loads(s)
-
         answer = obj.get("answer", None)
         quotes = obj.get("verbatim_quotes_used", None)
-
         compliance = obj.get("compliance", {}) or {}
         copied = compliance.get("verbatim_copied_exactly", None)
         n_quotes = compliance.get("number_of_verbatim_qoutes_used", None)
-
         return pd.Series({
             "answer": answer,
             "verbatim_quotes_used": quotes,
             "verbatim_copied_exactly": copied,
             "number_of_verbatim_qoutes_used": n_quotes
         })
-
     except Exception:
-
         return pd.Series({
             "answer": None,
             "verbatim_quotes_used": None,
             "verbatim_copied_exactly": None,
             "number_of_verbatim_qoutes_used": None
         })
-
-```
-
 #### Combined generation
-
-
-```python
 df_combined= pd.read_csv('.../combined.csv')
-```
-
-
-```python
-
 json_schema ="""{
   "answer": "<final answer text>",
   "verbatim_quotes_used": ["<exact copied text>"],
@@ -82,10 +51,6 @@ json_schema ="""{
   }
 }
 """
-```
-
-
-```python
 #iterate through the dataframe and generate response for combined text 
 resp = []
 for index, row in df_combined.iterrows():
@@ -112,12 +77,10 @@ for index, row in df_combined.iterrows():
             - Do NOT merge multiple sentences into one.
             - If any verbatim sentence is used, it MUST be listed in the "verbatim_quotes_used" array.
             - If no verbatim sentence is relevant, do NOT use verbatim text.
-
             2)COMPLETE, STANDALONE SENTENCE RULES:
             - Conveys a complete, standalone meaning without requiring following text
             - Does NOT introduce, depend on, or imply a list, table, subsection, or continuation
             - Does NOT end with punctuation that signals continuation
-
             
              3) VERBATIM DELIMITING (SENTENCE LEVEL)
             
@@ -171,7 +134,6 @@ for index, row in df_combined.iterrows():
             <SYNTHESIS_SECTIONS>
             {synthesis}
             </SYNTHESIS_SECTIONS>
-
             """
     messages = [{"role": "user", "content": prompt}]
     response = client.chat.completions.create(
@@ -181,50 +143,13 @@ for index, row in df_combined.iterrows():
     )
     resp.append(response.choices[0].message.content)
     
-```
-
-
-```python
 df_combined['llm_resp']= resp
-```
-
-
-```python
 df_combined[["answer", "verbatim_quotes_used", "verbatim_copied_exactly", "number_of_verbatim_qoutes_used"]] = (
     df_combined["llm_resp"].apply(parse_llm_output)
 )
 
-```
-
-
-```python
 df_combined['verbatim_copied_exactly'] = df_combined.apply(lambda row: False if row['number_of_verbatim_qoutes_used']==0 else row['verbatim_copied_exactly'], axis=1)
-```
-
-
-```python
 #now we need to seperate sentences between <#quote and >#quote
 df_combined['quotes_usingcharacter'] = df_combined['llm_resp'].apply(lambda x: find_quotes(x))
-```
-
-
-```python
 df_combined.to_csv('.../llm_resp_with_quotes.csv')
-```
-
-
-```python
 df_combined.shape
-```
-
-
-
-
-    (44, 9)
-
-
-
-
-```python
-
-```
