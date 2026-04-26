@@ -77,9 +77,9 @@ on another corpus with similar transformation constraints.
 If you use this code/protocol, please cite:
 
 ```bibtex
-@misc{tavakoli2026policyguidedrag,
-  title        = {Policy-Guided RAG: Segment-Level Transformation Governance in Regulated Settings},
-  author       = {Naghash Asadi, Mina; Tavakoli, Leila and Bilgrami, Mustafa},
-  year         = {2026},
-  note         = {SIGIR Industry Track submission (under review)}
+@inproceedings{asadi2026policyguidedrag,
+  title     = {Policy-Guided RAG: Enforcing Verbatim and Controlled Synthesis},
+  author    = {Naghash Asadi, Mina and Tavakoli, Leila and Bilgrami, Mustafa},
+  booktitle = {Proceedings of the 49th International ACM SIGIR Conference on Research and Development in Information Retrieval},
+  year      = {2026}
 }
